@@ -225,6 +225,12 @@
         <a class="nav-link" onclick="switchAdminView('money', this)">
           <i class="bi bi-currency-yen"></i>金銭・ランク設定
         </a>
+        <a class="nav-link" onclick="switchAdminView('billing', this)">
+          <i class="bi bi-receipt-cutoff"></i>請求書発行
+        </a>
+        <a class="nav-link" onclick="switchAdminView('settings', this)">
+          <i class="bi bi-gear-fill"></i>設定変更
+        </a>
       </div>
 
       <div class="mt-auto border-top border-secondary p-3">
@@ -321,6 +327,14 @@
 
         <div id="view-money" class="admin-view fade-in" style="display:none;">
           <?!= include('Admin_Part_MoneySettings'); ?>
+        </div>
+
+        <div id="view-billing" class="admin-view fade-in" style="display:none;">
+          <?!= include('Part_Billing'); ?>
+        </div>
+
+        <div id="view-settings" class="admin-view fade-in" style="display:none;">
+          <?!= include('Part_Settings'); ?>
         </div>
 
       </div>
@@ -489,6 +503,10 @@
         if (typeof initStaffAnalytics === 'function') initStaffAnalytics();
       } else if (viewId === 'money') {
         if (typeof initMoneySettings === 'function') initMoneySettings();
+      } else if (viewId === 'billing') {
+        if (typeof initBilling === 'function') initBilling();
+      } else if (viewId === 'settings') {
+        if (typeof initSettings === 'function') initSettings();
       }
 
       // 4. スマホの場合サイドバーを閉じる
