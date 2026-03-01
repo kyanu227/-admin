@@ -527,38 +527,17 @@ function getMoneySettingsData() {
 }
 
 /**
- * 通知設定ページ専用データ取得
+ * 通知設定ページ専用データ取得 → Notify_Data.js の getNotifyConfig() に委譲
  */
 function getNotifyData() {
   try {
+    var result = getNotifyConfig(); // Notify_Data.js
     var userEmail = getSafeUserEmail();
-    var props = PropertiesService.getScriptProperties();
-
-    var lineConfigs = [];
-    try {
-      var json = props.getProperty('LINE_CONFIGS');
-      if (json) lineConfigs = JSON.parse(json);
-    } catch (e) { }
-
-    var emails = [];
-    try {
-      var jsonEmails = props.getProperty('NOTIFY_EMAILS');
-      if (jsonEmails) emails = JSON.parse(jsonEmails);
-      else if (typeof NOTIFY_CONFIG !== 'undefined' && NOTIFY_CONFIG.EMAILS) emails = NOTIFY_CONFIG.EMAILS;
-    } catch (e) { }
-
-    var notifyConf = {
-      alertMonths: Number(props.getProperty('ALERT_MONTHS')) || 6,
-      validityYears: Number(props.getProperty('VALIDITY_YEARS')) || 3,
-      emails: emails,
-      lineConfigs: lineConfigs
-    };
-
     var userInfo = getUserInfo(userEmail, '');
     var isFullAdmin = forceCheckAdminByEmail(userEmail) ||
       ((userInfo.role || '').indexOf('管理者') !== -1 && (userInfo.role || '').indexOf('準') === -1);
-
-    return { success: true, notify: notifyConf, isFullAdmin: isFullAdmin };
+    result.isFullAdmin = isFullAdmin;
+    return result;
   } catch (e) {
     return { success: false, message: 'データ取得エラー: ' + e.message };
   }

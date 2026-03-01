@@ -1,4 +1,6 @@
-<div class="container-fluid mt-3 mb-5" style="max-width: 900px;">
+<div class="container-fluid mt-3 mb-5" style="max-width: 950px;">
+
+    <!-- ヘッダー -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold" style="color: var(--text-main, #e0e0e0);">
             <i class="bi bi-bell-fill me-2 text-danger"></i>通知設定
@@ -8,213 +10,356 @@
         </button>
     </div>
 
-    <div class="p-3 border rounded shadow-sm"
-        style="background: var(--bg-panel, #1e1e1e); border-color: var(--border-color, #333) !important;">
-
-        <!-- LINE通知設定（管理者専用） -->
-        <div id="ntfy-line-area" style="display:none;" class="mb-4 pb-3">
-            <h6 class="fw-bold text-success mb-2"><i class="bi bi-chat-dots-fill me-2"></i>LINE通知設定</h6>
-            <p class="small text-muted">LINEグループごとに受け取る通知の種類を選択できます。</p>
-            <div id="ntfy-line-container"></div>
-            <button class="btn btn-sm btn-outline-success mt-1" onclick="addNotifyLineRow()">
-                <i class="bi bi-plus-lg"></i> 送信先を追加
+    <!-- トリガー状態バナー -->
+    <div id="ntfy-trigger-banner" class="alert mb-3 d-flex justify-content-between align-items-center"
+        style="display:none!important;">
+        <span id="ntfy-trigger-status-text"><i class="bi bi-hourglass-split"></i> トリガー状態を確認中...</span>
+        <div class="d-flex gap-2" id="ntfy-trigger-btns" style="display:none!important;">
+            <button class="btn btn-success btn-sm fw-bold" onclick="registerTriggers()">
+                <i class="bi bi-play-circle-fill"></i> トリガーを登録/更新
             </button>
-            <hr style="border-color: var(--border-color, #333);">
-        </div>
-
-        <!-- メール通知先 -->
-        <div class="mb-4 pb-3" style="border-bottom: 1px solid var(--border-color, #333);">
-            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-envelope-fill me-2"></i>通知先メールアドレス</h6>
-            <div id="ntfy-email-list" class="mb-2"></div>
-            <button class="btn btn-sm btn-outline-secondary" onclick="addNotifyEmailRow('')">
-                <i class="bi bi-plus"></i> 追加
+            <button class="btn btn-outline-danger btn-sm" onclick="deleteTriggers()">
+                <i class="bi bi-stop-circle"></i> 停止
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="sendTestReport()">
+                <i class="bi bi-send"></i> 今すぐ日報送信
             </button>
         </div>
+    </div>
 
-        <!-- 期限・有効期間設定 -->
-        <div class="mb-4">
-            <h6 class="fw-bold mb-3" style="color: var(--text-muted, #a0a0a0);">
-                <i class="bi bi-clock-history me-2"></i>期限・有効期間設定
-            </h6>
-            <div class="row g-3 align-items-center mb-2">
-                <div class="col-auto">
-                    <label class="col-form-label small" style="color: var(--text-main, #e0e0e0);">アラート表示開始:</label>
+    <div class="row g-3">
+
+        <!-- 左カラム: 通知時刻設定 & 宛先 -->
+        <div class="col-lg-6">
+
+            <!-- 通知時刻設定 -->
+            <div class="p-3 border rounded mb-3"
+                style="background: var(--bg-panel,#1e1e1e); border-color: var(--border-color,#333)!important;">
+                <h6 class="fw-bold mb-3" style="color: var(--text-main);">
+                    <i class="bi bi-clock-fill me-2 text-warning"></i>通知時刻設定
+                </h6>
+                <p class="small text-muted mb-3">各通知の送信時刻を設定します。「トリガーを登録/更新」を押すと反映されます（±1時間の誤差あり）。</p>
+
+                <div class="row g-2">
+                    <div class="col-sm-6">
+                        <label class="form-label small fw-bold" style="color: var(--text-muted);">📋 日報</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="ntfy-daily-hour" class="form-control text-center fw-bold" min="0"
+                                max="23" value="18" style="width:65px;">
+                            <span class="input-group-text">時ごろ</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label small fw-bold" style="color: var(--text-muted);">⚠️ リマインダー</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="ntfy-reminder-hour" class="form-control text-center fw-bold"
+                                min="0" max="23" value="12" style="width:65px;">
+                            <span class="input-group-text">時ごろ</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label small fw-bold" style="color: var(--text-muted);">🔧 月次検査通知
+                            (毎月1日)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="ntfy-inspection-hour" class="form-control text-center fw-bold"
+                                min="0" max="23" value="9" style="width:65px;">
+                            <span class="input-group-text">時ごろ</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label small fw-bold" style="color: var(--text-muted);">📦 週次未回収
+                            (毎週月曜)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="ntfy-unreturned-hour" class="form-control text-center fw-bold"
+                                min="0" max="23" value="9" style="width:65px;">
+                            <span class="input-group-text">時ごろ</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-auto">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text">期限の</span>
-                        <input type="number" id="ntfy-alert-months" class="form-control text-center fw-bold" value="6"
-                            style="width:65px;" min="1" max="24">
-                        <span class="input-group-text">ヶ月前から</span>
+
+                <hr class="my-3" style="border-color: var(--border-color, #333);">
+
+                <div class="row g-2">
+                    <div class="col-sm-6">
+                        <label class="form-label small fw-bold" style="color: var(--text-muted);">アラート開始 (ヶ月前)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="ntfy-alert-months" class="form-control text-center fw-bold" min="1"
+                                max="24" value="6" style="width:65px;">
+                            <span class="input-group-text">ヶ月前</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label small fw-bold" style="color: var(--text-muted);">耐圧検査有効期間</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="ntfy-validity-years" class="form-control text-center fw-bold"
+                                min="1" max="10" value="3" style="width:65px;">
+                            <span class="input-group-text">年</span>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="row g-3 align-items-center">
-                <div class="col-auto">
-                    <label class="col-form-label small" style="color: var(--text-main, #e0e0e0);">耐圧検査有効期間:</label>
-                </div>
-                <div class="col-auto">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text">完了登録から</span>
-                        <input type="number" id="ntfy-validity-years" class="form-control text-center fw-bold" value="3"
-                            style="width:65px;" min="1" max="10">
-                        <span class="input-group-text">年後まで</span>
+
+            <!-- 通知タイプ説明 -->
+            <div class="p-3 border rounded"
+                style="background: var(--bg-panel,#1e1e1e); border-color: var(--border-color,#333)!important;">
+                <h6 class="fw-bold mb-2" style="color: var(--text-main);">
+                    <i class="bi bi-info-circle me-2"></i>通知タイプ
+                </h6>
+                <div class="small" style="color: var(--text-muted);">
+                    <div class="mb-1"><span class="badge bg-primary me-1">DAILY</span> 日報（当日の作業サマリー）</div>
+                    <div class="mb-1"><span class="badge bg-warning text-dark me-1">REMINDER</span> リマインダー（当日作業0件の場合のみ）
                     </div>
+                    <div class="mb-1"><span class="badge bg-danger me-1">INSPECTION</span> 月次耐圧検査アラート（毎月1日）</div>
+                    <div class="mb-1"><span class="badge bg-secondary me-1">WEEKLY</span> 週次未回収アラート（毎週月曜）</div>
+                    <div><span class="badge bg-dark me-1">ALL</span> 全ての通知</div>
                 </div>
             </div>
         </div>
 
-        <button class="btn btn-red w-100 fw-bold" onclick="saveNotifyPage()">
-            <i class="bi bi-cloud-upload-fill me-1"></i> 通知設定を保存
+        <!-- 右カラム: 宛先リスト -->
+        <div class="col-lg-6">
+            <div class="p-3 border rounded h-100"
+                style="background: var(--bg-panel,#1e1e1e); border-color: var(--border-color,#333)!important;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0" style="color: var(--text-main);">
+                        <i class="bi bi-send-fill me-2"></i>通知先リスト
+                    </h6>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-success" onclick="addNotifyLineRow()">
+                            <i class="bi bi-chat-dots"></i> LINE追加
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="addNotifyEmailRow()">
+                            <i class="bi bi-envelope"></i> メール追加
+                        </button>
+                    </div>
+                </div>
+                <div id="ntfy-recipients-container">
+                    <div class="text-center text-muted p-4 small">読み込み中...</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 保存ボタン -->
+    <div class="mt-3">
+        <button class="btn btn-red w-100 fw-bold py-2" onclick="saveNotifyPage()">
+            <i class="bi bi-cloud-upload-fill me-1"></i> 通知設定を保存＆トリガーを更新
         </button>
     </div>
+
 </div>
 
 <script>
     var NTFY_IS_FULL_ADMIN = false;
 
+    // ── 初期化 ──────────────────────────────────────────
     function initNotify() {
-        document.getElementById('ntfy-email-list').innerHTML =
+        document.getElementById('ntfy-recipients-container').innerHTML =
             '<div class="text-center p-3"><span class="spinner-border spinner-border-sm text-secondary"></span></div>';
 
         google.script.run
             .withSuccessHandler(function (data) {
-                if (!data.success) { alert('エラー: ' + data.message); return; }
+                if (!data.success) { alert('読み込みエラー: ' + data.message); return; }
                 NTFY_IS_FULL_ADMIN = data.isFullAdmin;
-                renderNotifyPage(data.notify);
+                applySettings_(data.settings);
+                renderRecipients_(data.recipients);
+                if (NTFY_IS_FULL_ADMIN) loadTriggerStatus_();
             })
-            .withFailureHandler(function (e) { alert('データ取得に失敗: ' + e.message); })
-            .getNotifyData();
+            .withFailureHandler(function (e) { alert('データ取得失敗: ' + e.message); })
+            .getNotifyConfig();
     }
 
-    function renderNotifyPage(conf) {
-        if (!conf) return;
-
-        // 期限設定
-        document.getElementById('ntfy-alert-months').value = conf.alertMonths || 6;
-        document.getElementById('ntfy-validity-years').value = conf.validityYears || 3;
-
-        // LINE設定 (管理者のみ)
-        var lineContainer = document.getElementById('ntfy-line-container');
-        lineContainer.innerHTML = '';
-        if (NTFY_IS_FULL_ADMIN) {
-            document.getElementById('ntfy-line-area').style.display = 'block';
-            if (conf.lineConfigs && conf.lineConfigs.length > 0) {
-                conf.lineConfigs.forEach(function (item) { addNotifyLineRow(item); });
-            } else {
-                addNotifyLineRow();
-            }
-        } else {
-            document.getElementById('ntfy-line-area').style.display = 'none';
-        }
-
-        // メール
-        var eContainer = document.getElementById('ntfy-email-list');
-        eContainer.innerHTML = '';
-        if (conf.emails) conf.emails.forEach(function (e) { addNotifyEmailRow(e); });
-    }
-
-    function addNotifyLineRow(data) {
-        var item = data || { name: '', token: '', groupId: '', targets: [] };
-        var currentTargets = Array.isArray(item.targets) ? item.targets :
-            (item.target === 'ALL' ? ['INSPECTION', 'DAILY', 'SALES', 'STAFF'] :
-                item.target ? [item.target] : []);
-        var ts = Date.now();
-        var chk = function (v) { return currentTargets.indexOf(v) !== -1 ? 'checked' : ''; };
-
-        var div = document.createElement('div');
-        div.className = 'card p-3 mb-3 bg-light border';
-        div.innerHTML = `
-      <div class="d-flex justify-content-between mb-2 align-items-center">
-        <input type="text" class="form-control form-control-sm ntfy-line-name fw-bold"
-          placeholder="名称 (例: 整備班)" value="${item.name || ''}" style="max-width:210px;">
-        <button class="btn btn-sm btn-outline-danger" onclick="this.closest('.card').remove()">
-          <i class="bi bi-trash"></i> 削除
-        </button>
-      </div>
-      <div class="mb-2">
-        <textarea class="form-control form-control-sm font-monospace ntfy-line-token" rows="2"
-          placeholder="チャネルアクセストークン (必須)">${item.token || ''}</textarea>
-      </div>
-      <div class="input-group input-group-sm mb-3">
-        <span class="input-group-text">GroupID</span>
-        <input type="text" class="form-control font-monospace ntfy-line-group"
-          placeholder="C... (任意)" value="${item.groupId || ''}">
-      </div>
-      <div class="border-top pt-2">
-        <div class="small fw-bold text-muted mb-2">通知対象を選択:</div>
-        <div class="d-flex flex-wrap gap-3">
-          <div class="form-check">
-            <input class="form-check-input ntfy-chk-target" type="checkbox" value="INSPECTION"
-              id="ntfy-insp-${ts}" ${chk('INSPECTION')}>
-            <label class="form-check-label small" for="ntfy-insp-${ts}">🔧 耐圧検査</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input ntfy-chk-target" type="checkbox" value="DAILY"
-              id="ntfy-daily-${ts}" ${chk('DAILY')}>
-            <label class="form-check-label small" for="ntfy-daily-${ts}">📋 日報</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input ntfy-chk-target" type="checkbox" value="SALES"
-              id="ntfy-sales-${ts}" ${chk('SALES')}>
-            <label class="form-check-label small" for="ntfy-sales-${ts}">💴 売上</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input ntfy-chk-target" type="checkbox" value="STAFF"
-              id="ntfy-staff-${ts}" ${chk('STAFF')}>
-            <label class="form-check-label small" for="ntfy-staff-${ts}">👷 スタッフ</label>
-          </div>
-        </div>
-      </div>`;
-        document.getElementById('ntfy-line-container').appendChild(div);
-    }
-
-    function addNotifyEmailRow(val) {
-        var d = document.createElement('div');
-        d.className = 'input-group mb-2';
-        d.innerHTML =
-            `<input type="email" class="form-control ntfy-email-val" value="${val}"
-        placeholder="user@example.com">
-       <button class="btn btn-outline-danger" onclick="this.parentElement.remove()">
-         <i class="bi bi-x"></i>
-       </button>`;
-        document.getElementById('ntfy-email-list').appendChild(d);
-    }
-
-    function saveNotifyPage() {
-        var alertMonths = parseInt(document.getElementById('ntfy-alert-months').value) || 6;
-        var validityYears = parseInt(document.getElementById('ntfy-validity-years').value) || 3;
-
-        var emails = [];
-        document.querySelectorAll('#ntfy-email-list .ntfy-email-val').forEach(function (el) {
-            if (el.value.trim()) emails.push(el.value.trim());
+    function applySettings_(s) {
+        if (!s) return;
+        var map = {
+            'ntfy-daily-hour': 'DAILY_REPORT_HOUR',
+            'ntfy-reminder-hour': 'REMINDER_HOUR',
+            'ntfy-inspection-hour': 'INSPECTION_HOUR',
+            'ntfy-unreturned-hour': 'UNRETURNED_HOUR',
+            'ntfy-alert-months': 'ALERT_MONTHS',
+            'ntfy-validity-years': 'VALIDITY_YEARS'
+        };
+        Object.keys(map).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el && s[map[id]] !== undefined) el.value = s[map[id]];
         });
+    }
 
-        var lineConfigs = [];
-        if (NTFY_IS_FULL_ADMIN) {
-            document.querySelectorAll('#ntfy-line-container .card').forEach(function (card) {
-                var token = card.querySelector('.ntfy-line-token').value.trim();
-                if (!token) return;
-                var targets = [];
-                card.querySelectorAll('.ntfy-chk-target:checked').forEach(function (chk) {
-                    targets.push(chk.value);
-                });
-                lineConfigs.push({
-                    name: card.querySelector('.ntfy-line-name').value.trim(),
-                    token: token,
-                    groupId: card.querySelector('.ntfy-line-group').value.trim(),
-                    targets: targets
-                });
-            });
-        }
-
-        if (!confirm('通知設定を保存しますか？')) return;
+    function loadTriggerStatus_() {
+        var banner = document.getElementById('ntfy-trigger-banner');
+        var statusText = document.getElementById('ntfy-trigger-status-text');
+        var btns = document.getElementById('ntfy-trigger-btns');
+        banner.style.display = 'flex';
+        btns.style.display = 'flex';
+        statusText.innerHTML = '<i class="bi bi-hourglass-split"></i> トリガー状態を確認中...';
+        banner.className = 'alert alert-secondary mb-3 d-flex justify-content-between align-items-center';
 
         google.script.run
             .withSuccessHandler(function (res) {
-                alert(res.message || (res.success ? '保存しました' : 'エラーが発生しました'));
+                if (!res.success) return;
+                var t = res.triggers;
+                var allOn = t.runDailyReport && t.runReminder && t.runMonthlyInspection && t.runWeeklyUnreturnedAlert;
+                var anyOn = t.runDailyReport || t.runReminder || t.runMonthlyInspection || t.runWeeklyUnreturnedAlert;
+                if (allOn) {
+                    banner.className = 'alert alert-success mb-3 d-flex justify-content-between align-items-center';
+                    statusText.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> <strong>通知トリガー: 全て稼働中</strong> (日報・リマインダー・月次検査・週次未回収)';
+                } else if (anyOn) {
+                    banner.className = 'alert alert-warning mb-3 d-flex justify-content-between align-items-center';
+                    var active = [];
+                    if (t.runDailyReport) active.push('日報');
+                    if (t.runReminder) active.push('リマインダー');
+                    if (t.runMonthlyInspection) active.push('月次検査');
+                    if (t.runWeeklyUnreturnedAlert) active.push('週次未回収');
+                    statusText.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>一部稼働</strong>: ' + active.join(' / ');
+                } else {
+                    banner.className = 'alert alert-danger mb-3 d-flex justify-content-between align-items-center';
+                    statusText.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i> <strong>トリガー未登録</strong> — 通知は自動送信されていません';
+                }
             })
-            .withFailureHandler(function (e) { alert('保存に失敗: ' + e.message); })
-            .updateNotifySettings({ alertMonths: alertMonths, validityYears: validityYears, emails: emails, lineConfigs: lineConfigs });
+            .withFailureHandler(function () { })
+            .getTriggerStatus();
+    }
+
+    // ── 宛先レンダリング ────────────────────────────────
+    function renderRecipients_(list) {
+        var container = document.getElementById('ntfy-recipients-container');
+        container.innerHTML = '';
+        if (!list || list.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted small p-3">通知先が設定されていません</div>';
+            return;
+        }
+        list.forEach(function (r) {
+            container.appendChild(createRecipientCard_(r));
+        });
+    }
+
+    function createRecipientCard_(r) {
+        r = r || {};
+        var isLine = (r.type || 'LINE').toUpperCase() === 'LINE';
+        var types = Array.isArray(r.notifyTypes) ? r.notifyTypes : ['ALL'];
+        var chk = function (v) { return (types.indexOf('ALL') !== -1 || types.indexOf(v) !== -1) ? 'checked' : ''; };
+        var ts = Date.now() + Math.random();
+
+        var card = document.createElement('div');
+        card.className = 'card mb-2 border';
+        card.style.cssText = 'background:#f8f9fa; border-color:#dee2e6!important;';
+
+        card.innerHTML = `
+      <div class="card-body p-2">
+        <div class="d-flex gap-2 mb-2 align-items-center">
+          <select class="form-select form-select-sm ntfy-rc-type fw-bold" style="width:90px;" onchange="onTypeChange_(this)">
+            <option value="LINE" ${isLine ? 'selected' : ''}>📱 LINE</option>
+            <option value="EMAIL" ${!isLine ? 'selected' : ''}>📧 メール</option>
+          </select>
+          <input type="text" class="form-control form-control-sm ntfy-rc-dest flex-grow-1 font-monospace"
+            placeholder="${isLine ? 'グループID (C...)' : 'メールアドレス'}"
+            value="${r.dest || ''}">
+          <button class="btn btn-sm btn-outline-danger p-1" onclick="this.closest('.card').remove()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="ntfy-line-token-area" style="display:${isLine ? 'block' : 'none'}; margin-bottom:6px;">
+          <textarea class="form-control form-control-sm font-monospace ntfy-rc-token" rows="2"
+            placeholder="チャネルアクセストークン">${r.token || ''}</textarea>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-1">
+          <div class="form-check form-check-inline m-0">
+            <input class="form-check-input ntfy-chk" type="checkbox" value="DAILY" id="chk-d-${ts}" ${chk('DAILY')}>
+            <label class="form-check-label small" for="chk-d-${ts}">日報</label>
+          </div>
+          <div class="form-check form-check-inline m-0">
+            <input class="form-check-input ntfy-chk" type="checkbox" value="REMINDER" id="chk-r-${ts}" ${chk('REMINDER')}>
+            <label class="form-check-label small" for="chk-r-${ts}">リマインダー</label>
+          </div>
+          <div class="form-check form-check-inline m-0">
+            <input class="form-check-input ntfy-chk" type="checkbox" value="INSPECTION" id="chk-i-${ts}" ${chk('INSPECTION')}>
+            <label class="form-check-label small" for="chk-i-${ts}">月次検査</label>
+          </div>
+          <div class="form-check form-check-inline m-0">
+            <input class="form-check-input ntfy-chk" type="checkbox" value="WEEKLY" id="chk-w-${ts}" ${chk('WEEKLY')}>
+            <label class="form-check-label small" for="chk-w-${ts}">週次未回収</label>
+          </div>
+        </div>
+      </div>`;
+        return card;
+    }
+
+    function onTypeChange_(sel) {
+        var card = sel.closest('.card');
+        var isLine = sel.value === 'LINE';
+        card.querySelector('.ntfy-line-token-area').style.display = isLine ? 'block' : 'none';
+        card.querySelector('.ntfy-rc-dest').placeholder = isLine ? 'グループID (C...)' : 'メールアドレス';
+    }
+
+    function addNotifyLineRow() {
+        document.getElementById('ntfy-recipients-container').appendChild(
+            createRecipientCard_({ type: 'LINE', dest: '', token: '', notifyTypes: ['DAILY', 'REMINDER', 'INSPECTION', 'WEEKLY'] })
+        );
+    }
+
+    function addNotifyEmailRow() {
+        document.getElementById('ntfy-recipients-container').appendChild(
+            createRecipientCard_({ type: 'EMAIL', dest: '', token: '', notifyTypes: ['INSPECTION', 'WEEKLY'] })
+        );
+    }
+
+    // ── 保存 ────────────────────────────────────────────
+    function saveNotifyPage() {
+        var settings = {
+            DAILY_REPORT_HOUR: parseInt(document.getElementById('ntfy-daily-hour').value) || 18,
+            REMINDER_HOUR: parseInt(document.getElementById('ntfy-reminder-hour').value) || 12,
+            INSPECTION_HOUR: parseInt(document.getElementById('ntfy-inspection-hour').value) || 9,
+            UNRETURNED_HOUR: parseInt(document.getElementById('ntfy-unreturned-hour').value) || 9,
+            ALERT_MONTHS: parseInt(document.getElementById('ntfy-alert-months').value) || 6,
+            VALIDITY_YEARS: parseInt(document.getElementById('ntfy-validity-years').value) || 3
+        };
+
+        var recipients = [];
+        document.querySelectorAll('#ntfy-recipients-container .card').forEach(function (card) {
+            var type = card.querySelector('.ntfy-rc-type').value;
+            var dest = card.querySelector('.ntfy-rc-dest').value.trim();
+            if (!dest) return;
+            var token = (card.querySelector('.ntfy-rc-token') || { value: '' }).value.trim();
+            var types = [];
+            card.querySelectorAll('.ntfy-chk:checked').forEach(function (chk) { types.push(chk.value); });
+            if (types.length === 0) types = ['ALL'];
+            recipients.push({ type: type, dest: dest, token: token, notifyTypes: types });
+        });
+
+        if (!confirm('通知設定を保存し、トリガーを更新しますか？')) return;
+
+        google.script.run
+            .withSuccessHandler(function (res) {
+                alert(res.message);
+                if (res.success && NTFY_IS_FULL_ADMIN) loadTriggerStatus_();
+            })
+            .withFailureHandler(function (e) { alert('保存失敗: ' + e.message); })
+            .saveNotifyConfig({ settings: settings, recipients: recipients });
+    }
+
+    // ── トリガー操作 ─────────────────────────────────────
+    function registerTriggers() {
+        if (!confirm('トリガーを登録/更新しますか？\n現在設定されている時刻で再登録されます。')) return;
+        google.script.run
+            .withSuccessHandler(function (res) { alert(res.message); loadTriggerStatus_(); })
+            .withFailureHandler(function (e) { alert('エラー: ' + e.message); })
+            .setupTriggers();
+    }
+
+    function deleteTriggers() {
+        if (!confirm('全ての通知トリガーを停止しますか？')) return;
+        google.script.run
+            .withSuccessHandler(function (res) { alert(res.message); loadTriggerStatus_(); })
+            .withFailureHandler(function (e) { alert('エラー: ' + e.message); })
+            .deleteTriggers();
+    }
+
+    function sendTestReport() {
+        if (!confirm('今すぐ日報を手動送信しますか？')) return;
+        google.script.run
+            .withSuccessHandler(function (res) { alert(res.message); })
+            .withFailureHandler(function (e) { alert('エラー: ' + e.message); })
+            .sendDailyReportNow();
     }
 </script>
