@@ -48,6 +48,13 @@ function getSettingsInitData(userPasscode) {
 
     for (var i = 1; i < staffData.length; i++) {
       var row = staffData[i];
+      // A〜G列（7列）が全て空の行はスキップ
+      var isStaffEmpty = true;
+      for (var c = 0; c < Math.min(7, row.length); c++) {
+        var cv = row[c];
+        if (cv !== '' && cv !== null && cv !== undefined && String(cv).trim() !== '') { isStaffEmpty = false; break; }
+      }
+      if (isStaffEmpty) continue;
       var rawEmail = (row.length > 1 && row[1]) ? String(row[1]) : "";
       var targetRole = (row.length > 2 && row[2]) ? String(row[2]) : "一般";
       var rawStatus = (row.length > 4 && row[4]) ? String(row[4]) : "";
@@ -81,6 +88,13 @@ function getSettingsInitData(userPasscode) {
 
     for (var i = 1; i < destData.length; i++) {
       var row = destData[i];
+      // A〜E列（5列）が全て空の行はスキップ
+      var isDestEmpty = true;
+      for (var c = 0; c < Math.min(5, row.length); c++) {
+        var dv = row[c];
+        if (dv !== '' && dv !== null && dv !== undefined && String(dv).trim() !== '' && dv !== 0) { isDestEmpty = false; break; }
+      }
+      if (isDestEmpty) continue;
       var rawName = (row.length > 0 && row[0]) ? String(row[0]) : "";
       var price10 = 0, price12 = 0, rawStatus = "";
 
@@ -509,5 +523,43 @@ function getMoneySettingsData() {
     return { success: true, prices: moneyPrices, ranks: moneyRanks, rankHeaders: rankHeaders };
   } catch (e) {
     return { success: false, message: "データ取得エラー: " + e.message };
+  }
+}
+
+/**
+ * 通知設定ページ専用データ取得
+ */
+function getNotifyData() {
+  try {
+    var userEmail = getSafeUserEmail();
+    var props = PropertiesService.getScriptProperties();
+
+    var lineConfigs = [];
+    try {
+      var json = props.getProperty('LINE_CONFIGS');
+      if (json) lineConfigs = JSON.parse(json);
+    } catch (e) { }
+
+    var emails = [];
+    try {
+      var jsonEmails = props.getProperty('NOTIFY_EMAILS');
+      if (jsonEmails) emails = JSON.parse(jsonEmails);
+      else if (typeof NOTIFY_CONFIG !== 'undefined' && NOTIFY_CONFIG.EMAILS) emails = NOTIFY_CONFIG.EMAILS;
+    } catch (e) { }
+
+    var notifyConf = {
+      alertMonths: Number(props.getProperty('ALERT_MONTHS')) || 6,
+      validityYears: Number(props.getProperty('VALIDITY_YEARS')) || 3,
+      emails: emails,
+      lineConfigs: lineConfigs
+    };
+
+    var userInfo = getUserInfo(userEmail, '');
+    var isFullAdmin = forceCheckAdminByEmail(userEmail) ||
+      ((userInfo.role || '').indexOf('管理者') !== -1 && (userInfo.role || '').indexOf('準') === -1);
+
+    return { success: true, notify: notifyConf, isFullAdmin: isFullAdmin };
+  } catch (e) {
+    return { success: false, message: 'データ取得エラー: ' + e.message };
   }
 }

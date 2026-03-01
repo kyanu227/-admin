@@ -231,6 +231,9 @@
         <a class="nav-link" onclick="switchAdminView('settings', this)">
           <i class="bi bi-gear-fill"></i>設定変更
         </a>
+        <a class="nav-link" onclick="switchAdminView('notify', this)">
+          <i class="bi bi-bell-fill"></i>通知設定
+        </a>
       </div>
 
       <div class="mt-auto border-top border-secondary p-3">
@@ -335,6 +338,10 @@
 
         <div id="view-settings" class="admin-view fade-in" style="display:none;">
           <?!= include('Part_Settings'); ?>
+        </div>
+
+        <div id="view-notify" class="admin-view fade-in" style="display:none;">
+          <?!= include('Part_Notify'); ?>
         </div>
 
       </div>
@@ -507,6 +514,8 @@
         if (typeof initBilling === 'function') initBilling();
       } else if (viewId === 'settings') {
         if (typeof initSettings === 'function') initSettings();
+      } else if (viewId === 'notify') {
+        if (typeof initNotify === 'function') initNotify();
       }
 
       // 4. スマホの場合サイドバーを閉じる

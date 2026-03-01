@@ -1,0 +1,220 @@
+<div class="container-fluid mt-3 mb-5" style="max-width: 900px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold" style="color: var(--text-main, #e0e0e0);">
+            <i class="bi bi-bell-fill me-2 text-danger"></i>通知設定
+        </h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="initNotify()">
+            <i class="bi bi-arrow-clockwise"></i> 再読込
+        </button>
+    </div>
+
+    <div class="p-3 border rounded shadow-sm"
+        style="background: var(--bg-panel, #1e1e1e); border-color: var(--border-color, #333) !important;">
+
+        <!-- LINE通知設定（管理者専用） -->
+        <div id="ntfy-line-area" style="display:none;" class="mb-4 pb-3">
+            <h6 class="fw-bold text-success mb-2"><i class="bi bi-chat-dots-fill me-2"></i>LINE通知設定</h6>
+            <p class="small text-muted">LINEグループごとに受け取る通知の種類を選択できます。</p>
+            <div id="ntfy-line-container"></div>
+            <button class="btn btn-sm btn-outline-success mt-1" onclick="addNotifyLineRow()">
+                <i class="bi bi-plus-lg"></i> 送信先を追加
+            </button>
+            <hr style="border-color: var(--border-color, #333);">
+        </div>
+
+        <!-- メール通知先 -->
+        <div class="mb-4 pb-3" style="border-bottom: 1px solid var(--border-color, #333);">
+            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-envelope-fill me-2"></i>通知先メールアドレス</h6>
+            <div id="ntfy-email-list" class="mb-2"></div>
+            <button class="btn btn-sm btn-outline-secondary" onclick="addNotifyEmailRow('')">
+                <i class="bi bi-plus"></i> 追加
+            </button>
+        </div>
+
+        <!-- 期限・有効期間設定 -->
+        <div class="mb-4">
+            <h6 class="fw-bold mb-3" style="color: var(--text-muted, #a0a0a0);">
+                <i class="bi bi-clock-history me-2"></i>期限・有効期間設定
+            </h6>
+            <div class="row g-3 align-items-center mb-2">
+                <div class="col-auto">
+                    <label class="col-form-label small" style="color: var(--text-main, #e0e0e0);">アラート表示開始:</label>
+                </div>
+                <div class="col-auto">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">期限の</span>
+                        <input type="number" id="ntfy-alert-months" class="form-control text-center fw-bold" value="6"
+                            style="width:65px;" min="1" max="24">
+                        <span class="input-group-text">ヶ月前から</span>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <label class="col-form-label small" style="color: var(--text-main, #e0e0e0);">耐圧検査有効期間:</label>
+                </div>
+                <div class="col-auto">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">完了登録から</span>
+                        <input type="number" id="ntfy-validity-years" class="form-control text-center fw-bold" value="3"
+                            style="width:65px;" min="1" max="10">
+                        <span class="input-group-text">年後まで</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-red w-100 fw-bold" onclick="saveNotifyPage()">
+            <i class="bi bi-cloud-upload-fill me-1"></i> 通知設定を保存
+        </button>
+    </div>
+</div>
+
+<script>
+    var NTFY_IS_FULL_ADMIN = false;
+
+    function initNotify() {
+        document.getElementById('ntfy-email-list').innerHTML =
+            '<div class="text-center p-3"><span class="spinner-border spinner-border-sm text-secondary"></span></div>';
+
+        google.script.run
+            .withSuccessHandler(function (data) {
+                if (!data.success) { alert('エラー: ' + data.message); return; }
+                NTFY_IS_FULL_ADMIN = data.isFullAdmin;
+                renderNotifyPage(data.notify);
+            })
+            .withFailureHandler(function (e) { alert('データ取得に失敗: ' + e.message); })
+            .getNotifyData();
+    }
+
+    function renderNotifyPage(conf) {
+        if (!conf) return;
+
+        // 期限設定
+        document.getElementById('ntfy-alert-months').value = conf.alertMonths || 6;
+        document.getElementById('ntfy-validity-years').value = conf.validityYears || 3;
+
+        // LINE設定 (管理者のみ)
+        var lineContainer = document.getElementById('ntfy-line-container');
+        lineContainer.innerHTML = '';
+        if (NTFY_IS_FULL_ADMIN) {
+            document.getElementById('ntfy-line-area').style.display = 'block';
+            if (conf.lineConfigs && conf.lineConfigs.length > 0) {
+                conf.lineConfigs.forEach(function (item) { addNotifyLineRow(item); });
+            } else {
+                addNotifyLineRow();
+            }
+        } else {
+            document.getElementById('ntfy-line-area').style.display = 'none';
+        }
+
+        // メール
+        var eContainer = document.getElementById('ntfy-email-list');
+        eContainer.innerHTML = '';
+        if (conf.emails) conf.emails.forEach(function (e) { addNotifyEmailRow(e); });
+    }
+
+    function addNotifyLineRow(data) {
+        var item = data || { name: '', token: '', groupId: '', targets: [] };
+        var currentTargets = Array.isArray(item.targets) ? item.targets :
+            (item.target === 'ALL' ? ['INSPECTION', 'DAILY', 'SALES', 'STAFF'] :
+                item.target ? [item.target] : []);
+        var ts = Date.now();
+        var chk = function (v) { return currentTargets.indexOf(v) !== -1 ? 'checked' : ''; };
+
+        var div = document.createElement('div');
+        div.className = 'card p-3 mb-3 bg-light border';
+        div.innerHTML = `
+      <div class="d-flex justify-content-between mb-2 align-items-center">
+        <input type="text" class="form-control form-control-sm ntfy-line-name fw-bold"
+          placeholder="名称 (例: 整備班)" value="${item.name || ''}" style="max-width:210px;">
+        <button class="btn btn-sm btn-outline-danger" onclick="this.closest('.card').remove()">
+          <i class="bi bi-trash"></i> 削除
+        </button>
+      </div>
+      <div class="mb-2">
+        <textarea class="form-control form-control-sm font-monospace ntfy-line-token" rows="2"
+          placeholder="チャネルアクセストークン (必須)">${item.token || ''}</textarea>
+      </div>
+      <div class="input-group input-group-sm mb-3">
+        <span class="input-group-text">GroupID</span>
+        <input type="text" class="form-control font-monospace ntfy-line-group"
+          placeholder="C... (任意)" value="${item.groupId || ''}">
+      </div>
+      <div class="border-top pt-2">
+        <div class="small fw-bold text-muted mb-2">通知対象を選択:</div>
+        <div class="d-flex flex-wrap gap-3">
+          <div class="form-check">
+            <input class="form-check-input ntfy-chk-target" type="checkbox" value="INSPECTION"
+              id="ntfy-insp-${ts}" ${chk('INSPECTION')}>
+            <label class="form-check-label small" for="ntfy-insp-${ts}">🔧 耐圧検査</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input ntfy-chk-target" type="checkbox" value="DAILY"
+              id="ntfy-daily-${ts}" ${chk('DAILY')}>
+            <label class="form-check-label small" for="ntfy-daily-${ts}">📋 日報</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input ntfy-chk-target" type="checkbox" value="SALES"
+              id="ntfy-sales-${ts}" ${chk('SALES')}>
+            <label class="form-check-label small" for="ntfy-sales-${ts}">💴 売上</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input ntfy-chk-target" type="checkbox" value="STAFF"
+              id="ntfy-staff-${ts}" ${chk('STAFF')}>
+            <label class="form-check-label small" for="ntfy-staff-${ts}">👷 スタッフ</label>
+          </div>
+        </div>
+      </div>`;
+        document.getElementById('ntfy-line-container').appendChild(div);
+    }
+
+    function addNotifyEmailRow(val) {
+        var d = document.createElement('div');
+        d.className = 'input-group mb-2';
+        d.innerHTML =
+            `<input type="email" class="form-control ntfy-email-val" value="${val}"
+        placeholder="user@example.com">
+       <button class="btn btn-outline-danger" onclick="this.parentElement.remove()">
+         <i class="bi bi-x"></i>
+       </button>`;
+        document.getElementById('ntfy-email-list').appendChild(d);
+    }
+
+    function saveNotifyPage() {
+        var alertMonths = parseInt(document.getElementById('ntfy-alert-months').value) || 6;
+        var validityYears = parseInt(document.getElementById('ntfy-validity-years').value) || 3;
+
+        var emails = [];
+        document.querySelectorAll('#ntfy-email-list .ntfy-email-val').forEach(function (el) {
+            if (el.value.trim()) emails.push(el.value.trim());
+        });
+
+        var lineConfigs = [];
+        if (NTFY_IS_FULL_ADMIN) {
+            document.querySelectorAll('#ntfy-line-container .card').forEach(function (card) {
+                var token = card.querySelector('.ntfy-line-token').value.trim();
+                if (!token) return;
+                var targets = [];
+                card.querySelectorAll('.ntfy-chk-target:checked').forEach(function (chk) {
+                    targets.push(chk.value);
+                });
+                lineConfigs.push({
+                    name: card.querySelector('.ntfy-line-name').value.trim(),
+                    token: token,
+                    groupId: card.querySelector('.ntfy-line-group').value.trim(),
+                    targets: targets
+                });
+            });
+        }
+
+        if (!confirm('通知設定を保存しますか？')) return;
+
+        google.script.run
+            .withSuccessHandler(function (res) {
+                alert(res.message || (res.success ? '保存しました' : 'エラーが発生しました'));
+            })
+            .withFailureHandler(function (e) { alert('保存に失敗: ' + e.message); })
+            .updateNotifySettings({ alertMonths: alertMonths, validityYears: validityYears, emails: emails, lineConfigs: lineConfigs });
+    }
+</script>
